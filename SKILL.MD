@@ -1,8 +1,8 @@
 ---
 name: adsturbo-skill
-description: "AI视频创作平台（AI-powered video creation）。支持：复刻视频、AI数字人、视频生成、视频翻译、换脸、对口型/口型同步、去水印、4K提升、动作控制、图片生成、TikTok数据分析、URL一键生成广告视频等。Generate videos with AI actors, translate, face-swap, lip-sync, and more — all via simple commands."
+description: "AI视频创作平台（AI-powered video creation）。支持：复刻视频、AI数字人、视频生成、视频翻译、换角色、对口型/口型同步、去水印、4K提升、动作控制、图片生成、TikTok数据分析、URL一键生成广告视频等。Generate videos with AI actors, translate, character-swap, lip-sync, and more — all via simple commands."
 metadata:
-  tags: adsturbo, video, ai-actor, tiktok, ads, lip-sync, face-swap, translate, url2video, image, 复刻视频, 数字人, 去水印, 换脸, 口型同步, 视频翻译, 4K, 生成视频, 生成图片
+  tags: adsturbo, video, ai-actor, tiktok, ads, lip-sync, character-swap, translate, url2video, image, 复刻视频, 数字人, 去水印, 换角色, 口型同步, 视频翻译, 4K, 生成视频, 生成图片
 requires:
   bins: [python3]
 primaryEnv: ADSTURBO_API_KEY
@@ -16,7 +16,7 @@ primaryEnv: ADSTURBO_API_KEY
 - AI Actor / AI数字人: Create talking-head videos with AI digital humans or your own custom avatars
 - Video Generation / 视频生成: Generate videos from text/image/reference (文生视频、图生视频、复刻视频)
 - URL2Video / 链接生成视频: Turn any product URL into a marketing video automatically
-- Video Tools / 视频工具: Lip-sync 对口型, face-swap 换脸, translate 翻译, watermark removal 去水印, 4K upscale, motion control 动作控制
+- Video Tools / 视频工具: Lip-sync 对口型, character-swap 换角色, translate 翻译, watermark removal 去水印, upscale 超分, motion control 动作控制, subtitle 字幕
 - TikTok Analytics / TikTok分析: Analyze creators 达人分析, video comments 评论, fake views 查假量, and metrics 数据
 - Image Creation / AI生成图片: AI-powered image generation
 
@@ -41,10 +41,11 @@ primaryEnv: ADSTURBO_API_KEY
 | Video Generate | ~3-10 min |
 | URL2Video Render | ~5-15 min |
 | Lip Sync | ~2-5 min |
-| Video Face Swap | ~3-5 min |
+| Video Character Swap | ~3-5 min |
 | Video Translate | ~5-10 min |
 | Video Inpainting (Watermark Removal) | ~2-5 min |
 | Super Resolve / 4K | ~3-5 min |
+| Video Subtitle | ~2-5 min |
 | Image Create | ~30s-1 min |
 | Frame Extractor | ~1-3 min |
 
@@ -87,7 +88,7 @@ Decision tree:
 | URL2Video | `scripts/url2video.py` | [url2video.md](references/url2video.md) | Product URL → marketing video: scrape, generate scripts, preview, render |
 | Workspace | `scripts/workspace.py` | [workspace.md](references/workspace.md) | Task results hub: poll status (list), get result (get), delete, share, remix |
 | TikTok Analytics | `scripts/tiktok_analytics.py` | [tiktok_analytics.md](references/tiktok_analytics.md) | TikTok data: creator info, comment analysis, fake view detection, video metrics |
-| Video Tools | `scripts/video_tools.py` | [video_tools.md](references/video_tools.md) | Video processing: lip-sync, inpainting, face-swap, translate, 4K, character-swap, motion-control |
+| Video Tools | `scripts/video_tools.py` | [video_tools.md](references/video_tools.md) | Video processing: analyze, lip-sync, inpaint, translate, upscale, character-swap, motion-control, subtitle |
 | Video Gen | `scripts/video_gen.py` | [video_gen.md](references/video_gen.md) | Unified video generation from text/image/reference |
 | Image | `scripts/image.py` | [image.md](references/image.md) | AI image creation |
 | Frame Extractor | `scripts/frame_extractor.py` | [frame_extractor.md](references/frame_extractor.md) | Video frame analysis: submit task, get result, list tasks |
@@ -144,21 +145,23 @@ Decision tree:
 │  → video_tools lipsync
 │
 ├─ 去水印 / 去除视频水印 / Remove watermark?
-│  → video_tools inpainting
+│  → video_tools inpaint
 │
-├─ 换脸 / 视频换脸 / Swap faces?
-│  → video_tools face-swap (单人换脸)
-│  → video_tools character-swap (角色替换)
+├─ 换角色 / 替换整个人 / Swap characters?
+│  → video_tools character-swap
 │
 ├─ 视频翻译 / 多语言翻译 / Translate a video?
 │  → video_tools translate
 │
 ├─ 提升分辨率 / 4K增强 / 视频高清化 / Upscale to 4K?
-│  → video_tools super-resolve-4k
+│  → video_tools upscale
 │  → definition run (通用分辨率增强)
 │
 ├─ 动作控制 / 控制视频动作 / Motion control?
 │  → video_tools motion-control
+│
+├─ 视频字幕 / 添加字幕 / 字幕翻译 / Add subtitles?
+│  → video_tools subtitle
 │
 ├─ 分析TikTok / 查达人数据 / 看评论 / 查播放量 / TikTok analytics?
 │  → tiktok_analytics creator (达人分析)
@@ -208,12 +211,12 @@ Decision tree:
 | 图片生成视频、图生视频、让图片动起来 | 从图片生成视频 | `video_gen run --image` |
 | 生成图片、AI 画图、文生图 | 从文本生成图片 | `image run` |
 | 对口型、口型同步、换音频 | 视频口型匹配新音频 | `video_tools lipsync` |
-| 去水印、去 logo | 移除视频水印 | `video_tools inpainting` |
-| 换脸、替换人脸 | 视频人脸替换 | `video_tools face-swap` |
+| 去水印、去 logo | 移除视频水印 | `video_tools inpaint` |
 | 换角色、替换整个人 | 视频角色整体替换 | `video_tools character-swap` |
 | 翻译视频、视频翻译成英文 | 视频多语言翻译 | `video_tools translate` |
-| 4K、提升画质、高清化、超分 | 提升视频分辨率 | `video_tools super-resolve-4k` |
+| 4K、提升画质、高清化、超分 | 提升视频分辨率 | `video_tools upscale` |
 | 动作控制、控制人物动作 | 视频动作引导 | `video_tools motion-control` |
+| 加字幕、字幕翻译、视频字幕 | 视频字幕添加/翻译 | `video_tools subtitle` |
 | 拉片、逐帧分析 | 视频帧提取分析 | `frame_extractor` |
 | 裁剪、剪辑、截取片段 | 视频裁剪 | `media cut-video` |
 | 下载视频、解析链接 | 从 URL 获取视频 | `media batch-fetch` |
@@ -241,12 +244,14 @@ Decision tree:
 | Video Generation / 视频生成（文生视频、图生视频、复刻视频） | Available | `scripts/video_gen.py` |
 | URL-to-Video / 链接一键生成广告视频 | Available | `scripts/url2video.py` |
 | Lip Sync / 对口型 | Available | `scripts/video_tools.py lipsync` |
-| Video Inpainting / 去水印 | Available | `scripts/video_tools.py inpainting` |
-| Video Face Swap / 视频换脸 | Available | `scripts/video_tools.py face-swap` |
+| Video Inpainting / 去水印 | Available | `scripts/video_tools.py inpaint` |
+| Video Character Swap / 视频换角色 | Available | `scripts/video_tools.py character-swap` |
 | Video Translate / 视频翻译 | Available | `scripts/video_tools.py translate` |
-| 4K Super Resolve / 4K超分 | Available | `scripts/video_tools.py super-resolve-4k` |
+| 4K Super Resolve / 4K超分 | Available | `scripts/video_tools.py upscale` |
 | Video Character Swap / 角色替换 | Available | `scripts/video_tools.py character-swap` |
 | Video Motion Control / 动作控制 | Available | `scripts/video_tools.py motion-control` |
+| Video Analyze / 视频拉片 | Available | `scripts/video_tools.py analyze` |
+| Video Subtitle / 视频字幕 | Available | `scripts/video_tools.py subtitle` |
 | Resolution Enhancement / 分辨率提升 | Available | `scripts/definition.py` |
 | Image Creation / AI生成图片 | Available | `scripts/image.py` |
 | Frame Extraction / 拉片（逐帧分析） | Available | `scripts/frame_extractor.py` |
