@@ -1,28 +1,19 @@
 # AI Actor Module
 
-Manage and use AI digital humans for talking-head video generation.
+Manage and use AI digital humans for TTS and talking-head video generation.
 
 ## When to Use
 
-When you need to create a talking-head video with an AI digital human, manage custom avatars, generate TTS audio, or transcribe speech.
+When you need to browse AI actors, generate TTS audio, or create a talking-head video.
 
 ## Subcommands
 
 | Subcommand | When to use | Async? |
 |------------|-------------|--------|
-| `list` | Browse available AI actors | No |
-| `favourite` | Favourite/unfavourite an actor | No |
-| `perform` | Generate talking-head video with AI actor | Yes — polls workspace |
-| `enhance` | Enhance emotion in text before TTS | No |
-| `say` | Generate TTS audio | No |
-| `asr` | Speech-to-text transcription | No |
-| `user-submit` | Create a custom user actor | No |
-| `user-voice` | Generate voice for custom actor | No |
-| `user-perform` | Perform with custom actor | Yes — polls workspace |
-| `user-detail` | Get custom actor details | No |
-| `user-clone-voice` | Clone voice for custom actor | No |
-| `user-del` | Delete a custom actor | No |
-| `user-img` | Create custom actor image | No |
+| `list` | Browse available AI actors with filters | No |
+| `say` | Generate TTS audio with an actor's voice | No |
+| `perform` | Generate talking-head video with AI actor | Yes — polls work/status |
+| `query` | Resume polling a workspace ID | Yes |
 
 ## Usage
 
@@ -35,50 +26,64 @@ python {baseDir}/scripts/ai_actor.py <subcommand> [options]
 ### List actors
 ```bash
 python {baseDir}/scripts/ai_actor.py list
+python {baseDir}/scripts/ai_actor.py list --gender "female" --age "adult" --limit 10
 ```
 
-### Perform with AI actor (submit + poll)
+### Generate TTS audio
 ```bash
-python {baseDir}/scripts/ai_actor.py perform --actor-id <id> --text "Hello, welcome to our product demo!"
+python {baseDir}/scripts/ai_actor.py say --actor-id <id> --script "Hello, welcome to our demo!"
 ```
 
-### Create custom actor
+### Generate talking-head video (submit + poll)
 ```bash
-python {baseDir}/scripts/ai_actor.py user-submit --name "My Avatar" --image <image_file_id>
-```
-
-### Clone voice
-```bash
-python {baseDir}/scripts/ai_actor.py user-clone-voice --actor-id <id> --audio <audio_file_id>
+python {baseDir}/scripts/ai_actor.py perform --actor-id <id> --script "Hello, welcome to our product demo!"
 ```
 
 ## Options
 
-### `perform` and `user-perform`
+### `list`
 
 | Option | Description |
 |--------|-------------|
-| `--actor-id ID` | Actor ID (required) |
-| `--text TEXT` | Text for the actor to speak |
-| `--audio ID` | Audio file/ID for audio-driven mode |
-| `--timeout SECS` | Max polling time (default: 600) |
-| `--interval SECS` | Polling interval (default: 5) |
-| `--json` | Output full JSON response |
-| `--submit-only` | Submit only, don't poll |
+| `--gender CSV` | Filter: female, male |
+| `--age CSV` | Filter: senior, adult, young-adult, kid |
+| `--situation CSV` | Filter: balcony, beach, bedroom, ... |
+| `--pose CSV` | Filter: arms-crossed, sitting, standing, ... |
+| `--shot-type CSV` | Filter: close-up, full-shot, medium-shot, ... |
+| `--sort-by FIELD` | Sort field |
+| `--offset N` | Pagination offset |
+| `--limit N` | Page size |
 
 ### `say`
 
 | Option | Description |
 |--------|-------------|
-| `--text TEXT` | Text to speak (required) |
-| `--voice-id ID` | Voice ID |
+| `--actor-id ID` | Actor ID (required) |
+| `--script TEXT` | Text to speak (required) |
+| `--auto-emotion` | Enable auto emotion |
+| `--speed FLOAT` | Speech speed |
+| `--stability FLOAT` | Voice stability |
+| `--similarity FLOAT` | Voice similarity |
 
-### `asr`
+### `perform`
 
 | Option | Description |
 |--------|-------------|
-| `--audio ID` | Audio file/ID (required) |
+| `--actor-id ID` | Actor ID (required) |
+| `--script TEXT` | Text for the actor to speak (required) |
+| `--auto-emotion` | Enable auto emotion |
+| `--speed FLOAT` | Speech speed |
+| `--stability FLOAT` | Voice stability |
+| `--similarity FLOAT` | Voice similarity |
+| `--style FLOAT` | Voice style |
+| `--speaker-boost` | Enable speaker boost |
+| `--callback-id ID` | Custom callback tracking ID |
+| `--submit-only` | Submit only, don't poll |
+| `--timeout SECS` | Polling timeout (default: 600) |
+| `--interval SECS` | Polling interval (default: 5) |
 
 ## Output
 
-`perform` and `user-perform` return the workspace entry result with video URL after polling completes.
+- `list` returns actor list with actor info (id, name, gender, age, voices, etc.)
+- `say` returns `{ "audio_url": "...", "duration": N }`
+- `perform` returns `OpenWorkData` with `workspace_id`, `status`, `result_url`, etc.

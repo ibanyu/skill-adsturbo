@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AdsTurbo API client with Bearer token auth and workspace polling.
+AdsTurbo API client with Bearer token auth and work-status polling.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ DEFAULT_BASE_URL = "https://adsturbo.ai/klian/novartapi"
 DEFAULT_POLL_INTERVAL = 5
 DEFAULT_POLL_TIMEOUT = 600
 
+WORK_STATUS_PATH = "/openapi/v1/work/status"
+
 
 class AdsTurboError(Exception):
     def __init__(self, code: int, msg: str):
@@ -25,7 +27,7 @@ class AdsTurboError(Exception):
 
 
 class AdsTurboClient:
-    """HTTP client for the AdsTurbo internal SaaS API."""
+    """HTTP client for the AdsTurbo Open API."""
 
     def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or os.environ.get("ADSTURBO_API_KEY", "")
@@ -53,44 +55,30 @@ class AdsTurboClient:
         data = body.get("data", {})
         return data.get("ent", data) if isinstance(data, dict) else data
 
-    def poll_workspace(
+    def poll_work_status(
         self,
-        entry_id: str,
+        workspace_id: str,
         timeout: float = DEFAULT_POLL_TIMEOUT,
         interval: float = DEFAULT_POLL_INTERVAL,
         verbose: bool = True,
     ) -> dict:
         """
-        Poll workspace/list until the entry reaches a terminal status.
-        Returns the entry data when done.
+        Poll /openapi/v1/work/status until the task reaches a terminal status.
+        Returns the OpenWorkData dict when done.
         """
         start = time.time()
         while True:
             elapsed = time.time() - start
             if elapsed > timeout:
-                raise TimeoutError(f"Polling timed out after {timeout}s for entry {entry_id}")
+                raise TimeoutError(f"Polling timed out after {timeout}s for workspace {workspace_id}")
             if verbose:
-                print(f"  Polling workspace (elapsed {elapsed:.0f}s)...", file=sys.stderr)
-            try:
-                result = self.post("/internalapi/v1/workspace/list", {"entry_id": entry_id})
-                entries = result if isinstance(result, list) else result.get("entries", [result])
-                for entry in entries:
-                    eid = str(entry.get("id", entry.get("entry_id", "")))
-                    if eid == str(entry_id):
-                        status = entry.get("status", "")
-                        if status in ("success", "done", "completed"):
-                            if verbose:
-                                print(f"  Task completed (status={status}).", file=sys.stderr)
-                            return entry
-                        if status in ("failed", "error"):
-                            raise AdsTurboError(-1, f"Task failed (status={status}): {entry.get('msg', '')}")
-            except AdsTurboError:
-                raise
-            except Exception as e:
+                print(f"  Polling work status (elapsed {elapsed:.0f}s)...", file=sys.stderr)
+            result = self.post(WORK_STATUS_PATH, {"workspace_id": workspace_id})
+            status = result.get("status", "")
+            if status == "completed":
                 if verbose:
-                    print(f"  Poll error: {e}", file=sys.stderr)
+                    print(f"  Task completed.", file=sys.stderr)
+                return result
+            if status == "failed":
+                raise AdsTurboError(-1, f"Task failed: {result.get('message', '')}")
             time.sleep(interval)
-
-    def get_workspace_result(self, entry_id: str) -> dict:
-        """Get workspace entry result details via workspace/get."""
-        return self.post("/internalapi/v1/workspace/get", {"entry_id": entry_id})
